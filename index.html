@@ -112,7 +112,7 @@
       <span class="ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-8z"/></svg></span>
       <span>Get directions</span>
     </a>
-    <a class="mini" id="cal-link" href="#" download="arroyo-sunday-service.ics" data-evt="calendar">
+    <a class="mini" href="sunday-service.ics" data-evt="calendar">
       <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9h17M8 3v3M16 3v3"/></svg></span>
       <span>Add to calendar</span>
     </a>
@@ -147,28 +147,6 @@
     img.onload=function(){img.classList.add("loaded");};
     img.src="https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg";
   }).catch(function(){});
-
-  function pad(n){return (n<10?"0":"")+n;}
-  var now=new Date(), s=new Date(now); s.setHours(10,0,0,0);
-  var add=(7-s.getDay())%7; if(add===0&&now>s) add=7; s.setDate(s.getDate()+add);
-  var e=new Date(s); e.setMinutes(75);
-  function fmt(x){return x.getFullYear()+pad(x.getMonth()+1)+pad(x.getDate())+"T"+pad(x.getHours())+pad(x.getMinutes())+"00";}
-  var ics=[
-    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Arroyo Church//Link//EN","CALSCALE:GREGORIAN",
-    "BEGIN:VTIMEZONE","TZID:America/Los_Angeles",
-    "BEGIN:DAYLIGHT","TZOFFSETFROM:-0800","TZOFFSETTO:-0700","TZNAME:PDT","DTSTART:19700308T020000","RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU","END:DAYLIGHT",
-    "BEGIN:STANDARD","TZOFFSETFROM:-0700","TZOFFSETTO:-0800","TZNAME:PST","DTSTART:19701101T020000","RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU","END:STANDARD",
-    "END:VTIMEZONE",
-    "BEGIN:VEVENT","UID:arroyo-sunday-service@arroyochurch.com",
-    "DTSTART;TZID=America/Los_Angeles:"+fmt(s),
-    "DTEND;TZID=America/Los_Angeles:"+fmt(e),
-    "RRULE:FREQ=WEEKLY;BYDAY=SU",
-    "SUMMARY:Arroyo Church — Sunday Service",
-    "LOCATION:945 Concannon Blvd\\, Livermore\\, CA 94550",
-    "DESCRIPTION:Join us Sunday at 10am. The worship center is the round building.",
-    "END:VEVENT","END:VCALENDAR"
-  ].join("\r\n");
-  document.getElementById("cal-link").href="data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
 
   function track(name){ try{ if(window.goatcounter&&window.goatcounter.count){ window.goatcounter.count({path:name,title:name,event:true}); } }catch(e){} }
   var els=document.querySelectorAll("[data-evt]");
