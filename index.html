@@ -59,7 +59,7 @@
   .foot{text-align:center;margin-top:26px}
   .foot a{font-size:13.5px;color:#E3BD6A}
   .foot p{font-size:12px;color:rgba(255,255,255,.45);margin:8px 0 0}
-  /* Lifted by Love eBook: first name + email gate (posts to the arroyo-connect Worker) */
+  /* Lifted by Love eBook: first + last name + email gate (posts to the arroyo-connect Worker) */
   .card.book:active{transform:none}
   .book-toggle{all:unset;display:block;width:100%;cursor:pointer;-webkit-tap-highlight-color:transparent}
   .book-toggle:focus-visible{outline:2px solid #E3BD6A;outline-offset:-2px;border-radius:16px}
@@ -119,6 +119,7 @@
         <p class="book-note">Add your name and email, and it&rsquo;s yours to download right away.</p>
         <label class="book-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
         <input type="text" name="first" placeholder="First name" autocomplete="given-name" aria-label="First name" maxlength="60">
+        <input type="text" name="last" placeholder="Last name" autocomplete="family-name" aria-label="Last name" maxlength="60">
         <input type="email" name="email" placeholder="Email" autocomplete="email" inputmode="email" aria-label="Email" maxlength="120">
         <p class="book-err" id="book-err" role="alert"></p>
         <button type="submit" class="book-btn">Get the free eBook</button>
@@ -185,8 +186,8 @@
     img.src="https://i.ytimg.com/vi/"+v.id+"/hqdefault.jpg";
   }).catch(function(){});
 
-  // Lifted by Love eBook gate: first name + email -> arroyo-connect Worker -> Planning Center
-  // (form 1206123, labelled "Lifted by Love eBook — links page"), then reveal the download.
+  // Lifted by Love eBook gate: first + last name + email -> arroyo-connect Worker -> Planning Center
+  // (form 1320123 "Lifted by Love eBook", labelled "Lifted by Love eBook — links page"), then reveal the download.
   // The book is never withheld: if the Worker call fails the visitor still gets it, and the
   // failure is counted in GoatCounter as "book-signup-failed".
   var WORKER="https://arroyo-connect.dakota-fac.workers.dev";
@@ -203,13 +204,13 @@
   });
   bForm.addEventListener("submit",function(ev){
     ev.preventDefault();
-    var first=bForm.elements.first.value.trim(), email=bForm.elements.email.value.trim();
-    if(!first||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
-      bErr.textContent="Please add your first name and a valid email."; bErr.style.display="block"; return;
+    var first=bForm.elements.first.value.trim(), last=bForm.elements.last.value.trim(), email=bForm.elements.email.value.trim();
+    if(!first||!last||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+      bErr.textContent="Please add your first and last name and a valid email."; bErr.style.display="block"; return;
     }
     bErr.style.display="none";
     var btn=bForm.querySelector("button[type=submit]"); btn.disabled=true; btn.textContent="One moment…";
-    var body={source:"ebook_links",first:first,email:email,website:bForm.elements.website.value};
+    var body={source:"ebook_links",first:first,last:last,email:email,website:bForm.elements.website.value};
     fetch(WORKER,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
       .then(function(r){ return r.json(); })
       .then(function(d){ track(d&&d.success?"book-signup":"book-signup-failed"); })
