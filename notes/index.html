@@ -63,8 +63,13 @@
   .outline .cite{white-space:nowrap;color:#E3BD6A}
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px}
   /* "Save to my notes" hands the outline to the phone's share sheet (iPhone: Notes; Android: Keep, Samsung Notes...) */
-  .btn-save{margin-top:12px}
-  .actions .btn-save{grid-column:1/-1;margin-top:0}
+  .actions .btn-save{grid-column:1/-1}
+  /* Save + Copy right under Watch, so nobody has to scroll past the outline to find them (2026-10-23: missed on an
+     iPhone when they lived only at the bottom). Without a share sheet, Copy takes the whole row (.one). */
+  .top-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px}
+  .top-actions.one{grid-template-columns:minmax(0,1fr)}
+  .top-actions .btn{min-height:48px;font-size:16px;padding:10px 10px}
+  .top-actions + .status{margin-top:6px;min-height:0}
   .status{min-height:1.5em;font-size:15px;color:#E3BD6A;text-align:center;margin:10px 0 0}
   .fail{margin-top:10px}
   .fail p{color:rgba(255,255,255,.85);margin:12px 0 0}
@@ -123,10 +128,17 @@
       <svg id="n-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
       <span id="n-watch-txt">Watch on YouTube</span>
     </a>
-    <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save-top" hidden>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
-      Save to my notes
-    </button>
+    <div class="top-actions one" id="top-actions">
+      <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save-top" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
+        Save to notes
+      </button>
+      <button type="button" class="btn btn-ghost btn-copy" data-evt="notes-copy-top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy notes
+      </button>
+    </div>
+    <p class="status" id="act-status-top" role="status" aria-live="polite"></p>
     <section class="take" id="n-take" aria-labelledby="take-lab" hidden>
       <p class="take-lab" id="take-lab">Key takeaway (summary)</p>
       <p class="take-txt serif" id="n-take-txt"></p>
@@ -137,7 +149,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
         Save to my notes
       </button>
-      <button type="button" class="btn btn-ghost" id="copy" data-evt="notes-copy">Copy notes</button>
+      <button type="button" class="btn btn-ghost btn-copy" id="copy" data-evt="notes-copy">Copy notes</button>
       <button type="button" class="btn btn-ghost" id="share" data-evt="notes-share">Share link</button>
     </div>
     <p class="status" id="act-status" role="status" aria-live="polite"></p>
@@ -196,6 +208,16 @@
   function el(tag,cls,text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=String(text); return e; }
   function str(x){ return typeof x==="string"?x.trim():""; }
   function track(name){ try{ if(window.goatcounter&&window.goatcounter.count){ window.goatcounter.count({path:name,title:name,event:true}); } }catch(e){} }
+  // ?from=qr = a scan of the stage-slide QR code (arroyochurch.com/notes 302s here with it). Drop the param at once,
+  // so GoatCounter's page view and any shared or bookmarked link stay clean, then count the scan once GoatCounter's
+  // async script is up (polling, since it usually isn't loaded yet when this runs).
+  if(q.get("from")==="qr"){
+    try{ q.delete("from"); history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():"")+location.hash); }catch(e){}
+    (function count(tries){
+      if(window.goatcounter&&window.goatcounter.count) track("notes-qr-scan");
+      else if(tries<30) setTimeout(function(){ count(tries+1); },500);
+    })(0);
+  }
   document.addEventListener("click",function(ev){
     var t=ev.target&&ev.target.closest&&ev.target.closest("[data-evt]");
     if(t) track(t.getAttribute("data-evt"));
@@ -467,8 +489,13 @@
   }
 
   // ---- Copy + Share ----
-  var statusTimer=0;
-  function say(msg){ var s=$("act-status"); s.textContent=msg; clearTimeout(statusTimer); statusTimer=setTimeout(function(){ s.textContent=""; },4000); }
+  // The message shows under whichever button row was used (top or bottom), so it's on screen either way.
+  var statusTimer=0, sayAt="act-status";
+  function say(msg){
+    ["act-status","act-status-top"].forEach(function(id){ $(id).textContent=""; });
+    var s=$(sayAt); s.textContent=msg; clearTimeout(statusTimer); statusTimer=setTimeout(function(){ s.textContent=""; },4000);
+  }
+  function from(btn){ sayAt=btn.closest("#top-actions")?"act-status-top":"act-status"; }
   function legacyCopy(t){
     return new Promise(function(ok,no){
       var ta=el("textarea"); ta.value=t; ta.setAttribute("readonly","");
@@ -496,19 +523,21 @@
     }
     return copy(t);
   }
-  $("copy").addEventListener("click",function(){
+  [].slice.call(document.querySelectorAll(".btn-copy")).forEach(function(b){ b.addEventListener("click",function(){
     if(!text) return;
+    from(b);
     copyRich(text,textHtml).then(function(){ say("Notes copied. Paste them into your notes app or anywhere."); },
                     function(){ say("Couldn’t copy on this device. Press and hold the notes to select them."); });
-  });
+  }); });
   // Save to my notes: there's no web API that writes into Apple Notes or Keep directly, but the share sheet does it.
   // Sharing TEXT (not a link) puts "Notes" on an iPhone's sheet (a new note, titled by the first line) and Keep,
   // Samsung Notes, OneNote... on Android. Only `text` is passed: a separate title/url makes some apps add a link
   // card or repeat the title. Shown only where the share sheet exists; elsewhere Copy notes does the job.
   var saveBtns=[].slice.call(document.querySelectorAll(".btn-save"));
-  if(navigator.share) saveBtns.forEach(function(b){ b.hidden=false; });
+  if(navigator.share){ saveBtns.forEach(function(b){ b.hidden=false; }); $("top-actions").classList.remove("one"); }
   saveBtns.forEach(function(b){ b.addEventListener("click",function(){
     if(!noteText) return;
+    from(b);
     function fallback(){ copyRich(noteText,noteHtml).then(function(){ say("Copied. Open your notes app and paste."); },
                                                          function(){ say("Couldn’t save on this device. Press and hold the notes to select them."); }); }
     if(!navigator.share) return fallback();
@@ -517,6 +546,7 @@
   }); });
   $("share").addEventListener("click",function(){
     if(!shown) return;
+    from($("share"));
     var url=pageUrl(shown.service), title=$("n-title").textContent;
     function copyLink(){ copy(url).then(function(){ say("Link copied."); },function(){ say(url); }); }
     if(navigator.share){
