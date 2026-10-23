@@ -63,7 +63,7 @@
   .outline .cite{white-space:nowrap;color:#E3BD6A}
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px}
   /* "Save to my notes" hands the outline to the phone's share sheet (iPhone: Notes; Android: Keep, Samsung Notes...) */
-  .actions .btn-save{grid-column:1/-1}
+  .actions .btn-save,.actions .btn-apple{grid-column:1/-1}
   /* Save + Copy right under Watch, so nobody has to scroll past the outline to find them (2026-10-23: missed on an
      iPhone when they lived only at the bottom). Without a share sheet, Copy takes the whole row (.one). */
   .top-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px}
@@ -129,6 +129,10 @@
       <span id="n-watch-txt">Watch on YouTube</span>
     </a>
     <div class="top-actions one" id="top-actions">
+      <a class="btn btn-ghost btn-apple" href="#" target="_blank" rel="noopener" data-evt="notes-open-apple-top" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        Open in Notes
+      </a>
       <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save-top" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
         Save to notes
@@ -145,6 +149,10 @@
     </section>
     <div class="outline" id="n-outline"></div>
     <div class="actions">
+      <a class="btn btn-ghost btn-apple" href="#" target="_blank" rel="noopener" data-evt="notes-open-apple" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        Open in Apple Notes
+      </a>
       <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
         Save to my notes
@@ -534,7 +542,17 @@
   // Samsung Notes, OneNote... on Android. Only `text` is passed: a separate title/url makes some apps add a link
   // card or repeat the title. Shown only where the share sheet exists; elsewhere Copy notes does the job.
   var saveBtns=[].slice.call(document.querySelectorAll(".btn-save"));
-  if(navigator.share){ saveBtns.forEach(function(b){ b.hidden=false; }); $("top-actions").classList.remove("one"); }
+  // iPhone / iPad / Mac: "Open in Notes" opens the church's SHARED Apple Note (rewritten every Saturday night by
+  // sermon_notes_sync.py) in one tap -- what the congregation already knows: open it, then copy it into their own
+  // note. The share sheet hides Notes off-screen in its app row on many iPhones (Dakota, 2026-10-23), so Apple
+  // devices get this instead of Save. Everyone else keeps Save (share sheet) where it exists, and Copy everywhere.
+  // The link is the note's stable share token; its "#Title" hash changes weekly, so it is left off on purpose.
+  var APPLE_NOTE="https://www.icloud.com/notes/06e8UJJw81I31qrwqcGLqTXyA";
+  var isApple=/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);   // iPadOS reports "Macintosh"
+  if(isApple){
+    [].slice.call(document.querySelectorAll(".btn-apple")).forEach(function(a){ a.href=APPLE_NOTE; a.hidden=false; });
+    $("top-actions").classList.remove("one");
+  }else if(navigator.share){ saveBtns.forEach(function(b){ b.hidden=false; }); $("top-actions").classList.remove("one"); }
   saveBtns.forEach(function(b){ b.addEventListener("click",function(){
     if(!noteText) return;
     from(b);
