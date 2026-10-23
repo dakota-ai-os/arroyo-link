@@ -62,6 +62,9 @@
   .outline blockquote p+p{margin-top:10px}
   .outline .cite{white-space:nowrap;color:#E3BD6A}
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px}
+  /* "Save to my notes" hands the outline to the phone's share sheet (iPhone: Notes; Android: Keep, Samsung Notes...) */
+  .btn-save{margin-top:12px}
+  .actions .btn-save{grid-column:1/-1;margin-top:0}
   .status{min-height:1.5em;font-size:15px;color:#E3BD6A;text-align:center;margin:10px 0 0}
   .fail{margin-top:10px}
   .fail p{color:rgba(255,255,255,.85);margin:12px 0 0}
@@ -120,14 +123,22 @@
       <svg id="n-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
       <span id="n-watch-txt">Watch on YouTube</span>
     </a>
+    <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save-top" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
+      Save to my notes
+    </button>
     <section class="take" id="n-take" aria-labelledby="take-lab" hidden>
       <p class="take-lab" id="take-lab">Key takeaway (summary)</p>
       <p class="take-txt serif" id="n-take-txt"></p>
     </section>
     <div class="outline" id="n-outline"></div>
     <div class="actions">
+      <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
+        Save to my notes
+      </button>
       <button type="button" class="btn btn-ghost" id="copy" data-evt="notes-copy">Copy notes</button>
-      <button type="button" class="btn btn-ghost" id="share" data-evt="notes-share">Share</button>
+      <button type="button" class="btn btn-ghost" id="share" data-evt="notes-share">Share link</button>
     </div>
     <p class="status" id="act-status" role="status" aria-live="polite"></p>
   </article>
@@ -247,7 +258,7 @@
   }
   function pageUrl(svc){ return location.origin+location.pathname+"?week="+svc; }
 
-  var weeks=[], shown=null, text="", videoUrl="", videos=null, seq=0, shownKey="";
+  var weeks=[], shown=null, text="", textHtml="", noteText="", noteHtml="", videoUrl="", videos=null, seq=0, shownKey="";
 
   function banner(msgs){
     var b=$("banner"); b.textContent="";
@@ -348,46 +359,60 @@
     return out;
   }
 
-  // Build the outline DOM and its plain-text copy in one pass, so Copy notes matches what's on screen.
+  // Build the outline DOM and its copies in one pass, so what's copied or saved matches what's on screen.
+  // Two copies, each as plain text + clean HTML (no page colors, so a dark-theme paste can't carry over):
+  //   text/textHtml  -> Copy notes: the outline as shown.
+  //   noteText/noteHtml -> Save to my notes: the same, plus a "My notes:" space after each main point, like the
+  //                       shared Apple Note's "Write some notes here", since people save it to write in.
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function render(entry,d){
     var title=str(d.title)||str(entry.title)||"Sermon notes";
     var speaker=str(d.speaker)||str(entry.speaker), svc=entry.service, date=longDate(svc);
     var meta=[speaker,date].filter(Boolean).join(" · "), take=str(d.takeaway);
-    var box=$("n-outline"), lines=[title,meta,""], n=0;
+    var MINE={};                                                        // marks a "My notes:" space (Save only)
+    var box=$("n-outline"), lines=[title,meta,""], hl=["<h1>"+esc(title)+"</h1>"], n=0;
+    if(meta) hl.push("<p>"+esc(meta)+"</p>");
     $("n-title").textContent=title; $("n-meta").textContent=meta;
     $("n-take").hidden=!take; $("n-take-txt").textContent=take;
-    if(take) lines.push("Key takeaway (summary): "+take,"");
+    if(take){ lines.push("Key takeaway (summary): "+take,""); hl.push("<p><b>Key takeaway (summary):</b> "+esc(take)+"</p>"); }
     box.textContent="";
     groups(d.blocks).forEach(function(g){
       var t=g.items[0];
       if(g.kind==="main"){
         n++;
+        if(n>1){ lines.push(MINE); hl.push(MINE); }                        // close out the previous point
         var m=AUTHOR_NUM.exec(t), num=m?(m[1]||m[2]):String(n), body=m?t.slice(m[0].length):t;
         var h=el("h2"); h.appendChild(el("span","n",num+".")); h.appendChild(document.createTextNode(" "+body));
-        box.appendChild(h); lines.push(num+". "+body);
+        box.appendChild(h); lines.push(num+". "+body); hl.push("<h2>"+esc(num+". "+body)+"</h2>");
       }else if(g.kind==="subhead"){
-        box.appendChild(el("h3","",t)); lines.push(t);
+        box.appendChild(el("h3","",t)); lines.push(t); hl.push("<h3>"+esc(t)+"</h3>");
       }else if(g.kind==="sub"){
-        var ol=el("ol");
+        var ol=el("ol"), oh="";
         g.items.forEach(function(it,j){
           var li=el("li"), lab=labelSplit(it);
-          if(lab){ li.appendChild(el("b","",lab[0])); li.appendChild(document.createTextNode(lab[1])); }
-          else li.textContent=it;
+          if(lab){ li.appendChild(el("b","",lab[0])); li.appendChild(document.createTextNode(lab[1])); oh+="<li><b>"+esc(lab[0])+"</b>"+esc(lab[1])+"</li>"; }
+          else{ li.textContent=it; oh+="<li>"+esc(it)+"</li>"; }
           ol.appendChild(li); lines.push("   "+(j+1)+". "+it);
         });
-        box.appendChild(ol);
+        box.appendChild(ol); hl.push("<ol>"+oh+"</ol>");
       }else if(g.kind==="quote"){
-        var bq=el("blockquote");
-        g.items.forEach(function(it){ bq.appendChild(quoteP(it)); lines.push(it); });
-        box.appendChild(bq);
+        var bq=el("blockquote"), qh="";
+        g.items.forEach(function(it){ bq.appendChild(quoteP(it)); lines.push(it); qh+="<p><i>"+esc(it)+"</i></p>"; });
+        box.appendChild(bq); hl.push("<blockquote>"+qh+"</blockquote>");
       }else{
-        box.appendChild(el("p","",t)); lines.push(t);
+        box.appendChild(el("p","",t)); lines.push(t); hl.push("<p>"+esc(t)+"</p>");
       }
       lines.push("");
     });
+    if(n){ lines.push(MINE); hl.push(MINE); }                            // ...and after the final point
     if(!box.firstChild) box.appendChild(el("p","","The outline for this week isn’t available yet."));
-    lines.push(pageUrl(svc),"",$("niv").textContent);
-    text=lines.join("\n");
+    var url=pageUrl(svc), niv=$("niv").textContent;
+    lines.push(url,"",niv);
+    hl.push('<p><a href="'+esc(url)+'">'+esc(url)+'</a></p><p><small>'+esc(niv)+'</small></p>');
+    text=lines.filter(function(x){ return x!==MINE; }).join("\n");
+    textHtml=hl.filter(function(x){ return x!==MINE; }).join("");
+    noteText=lines.map(function(x){ return x===MINE?"My notes:\n\n":x; }).join("\n");
+    noteHtml=hl.map(function(x){ return x===MINE?"<p><i>My notes:</i></p><p><br></p><p><br></p>":x; }).join("");
 
     shown=entry; videoUrl="";
     document.title=title+" · Sermon notes · Arroyo Church";
@@ -457,11 +482,39 @@
     if(navigator.clipboard&&window.isSecureContext) return navigator.clipboard.writeText(t).catch(function(){ return legacyCopy(t); });
     return legacyCopy(t);
   }
+  // Rich copy: HTML + plain text together, so a paste into Apple Notes, Google Keep/Docs or an email keeps the
+  // headings, bold labels and numbered lists; apps that only take text get the plain copy. The ClipboardItem is
+  // built synchronously inside the click, which Safari requires. Any failure falls back to plain text.
+  function copyRich(t,h){
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write&&window.isSecureContext){
+      try{
+        return navigator.clipboard.write([new ClipboardItem({
+          "text/plain":new Blob([t],{type:"text/plain"}),
+          "text/html":new Blob([h],{type:"text/html"})
+        })]).catch(function(){ return copy(t); });
+      }catch(e){}
+    }
+    return copy(t);
+  }
   $("copy").addEventListener("click",function(){
     if(!text) return;
-    copy(text).then(function(){ say("Notes copied. Paste them anywhere."); },
+    copyRich(text,textHtml).then(function(){ say("Notes copied. Paste them into your notes app or anywhere."); },
                     function(){ say("Couldn’t copy on this device. Press and hold the notes to select them."); });
   });
+  // Save to my notes: there's no web API that writes into Apple Notes or Keep directly, but the share sheet does it.
+  // Sharing TEXT (not a link) puts "Notes" on an iPhone's sheet (a new note, titled by the first line) and Keep,
+  // Samsung Notes, OneNote... on Android. Only `text` is passed: a separate title/url makes some apps add a link
+  // card or repeat the title. Shown only where the share sheet exists; elsewhere Copy notes does the job.
+  var saveBtns=[].slice.call(document.querySelectorAll(".btn-save"));
+  if(navigator.share) saveBtns.forEach(function(b){ b.hidden=false; });
+  saveBtns.forEach(function(b){ b.addEventListener("click",function(){
+    if(!noteText) return;
+    function fallback(){ copyRich(noteText,noteHtml).then(function(){ say("Copied. Open your notes app and paste."); },
+                                                         function(){ say("Couldn’t save on this device. Press and hold the notes to select them."); }); }
+    if(!navigator.share) return fallback();
+    navigator.share({text:noteText}).then(function(){ say("Done. Look for it in your notes app."); },
+                                          function(e){ if(!e||e.name!=="AbortError") fallback(); });
+  }); });
   $("share").addEventListener("click",function(){
     if(!shown) return;
     var url=pageUrl(shown.service), title=$("n-title").textContent;
