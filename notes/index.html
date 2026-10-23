@@ -64,6 +64,8 @@
   .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:34px}
   /* "Save to my notes" hands the outline to the phone's share sheet (iPhone: Notes; Android: Keep, Samsung Notes...) */
   .actions .btn-save,.actions .btn-apple{grid-column:1/-1}
+  /* a Notes-style app tile (drawn here, not Apple's artwork): white paper, yellow top, faint lines */
+  .btn .ic-notes{width:26px;height:26px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.35)}
   /* Save + Copy right under Watch, so nobody has to scroll past the outline to find them (2026-10-23: missed on an
      iPhone when they lived only at the bottom). Without a share sheet, Copy takes the whole row (.one). */
   .top-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:12px}
@@ -130,7 +132,7 @@
     </a>
     <div class="top-actions one" id="top-actions">
       <a class="btn btn-ghost btn-apple" href="#" target="_blank" rel="noopener" data-evt="notes-open-apple-top" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        <svg class="ic-notes" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="5.2" fill="#fff"/><path d="M1.5 8.2V6.7a5.2 5.2 0 0 1 5.2-5.2h10.6a5.2 5.2 0 0 1 5.2 5.2v1.5z" fill="#F6C443"/><path d="M5.2 12.4h13.6M5.2 15.9h13.6M5.2 19.4h8.4" stroke="#C7C7CC" stroke-width="1.1" stroke-linecap="round"/></svg>
         Open in Notes
       </a>
       <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save-top" hidden>
@@ -150,7 +152,7 @@
     <div class="outline" id="n-outline"></div>
     <div class="actions">
       <a class="btn btn-ghost btn-apple" href="#" target="_blank" rel="noopener" data-evt="notes-open-apple" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+        <svg class="ic-notes" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="1.5" width="21" height="21" rx="5.2" fill="#fff"/><path d="M1.5 8.2V6.7a5.2 5.2 0 0 1 5.2-5.2h10.6a5.2 5.2 0 0 1 5.2 5.2v1.5z" fill="#F6C443"/><path d="M5.2 12.4h13.6M5.2 15.9h13.6M5.2 19.4h8.4" stroke="#C7C7CC" stroke-width="1.1" stroke-linecap="round"/></svg>
         Open in Apple Notes
       </a>
       <button type="button" class="btn btn-ghost btn-save" data-evt="notes-save" hidden>
