@@ -78,13 +78,34 @@
   .fail .btn-ghost{margin-top:12px}
   .past{margin-top:34px}
   .past h2{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#E3BD6A;font-weight:600;margin:0 0 2px}
-  .past ul{list-style:none;margin:0;padding:0}
-  .past a{display:flex;align-items:center;gap:14px;min-height:60px;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.13)}
-  .past a::after{content:"";flex:none;width:9px;height:9px;margin-right:6px;border-top:2px solid rgba(255,255,255,.45);border-right:2px solid rgba(255,255,255,.45);transform:rotate(45deg)}
-  .past a:hover .past-t{color:#E3BD6A}
+  .past ul,.arch-yr ul{list-style:none;margin:0;padding:0}
+  .past li a,.arch-yr a{display:flex;align-items:center;gap:14px;min-height:60px;padding:12px 4px;border-bottom:1px solid rgba(255,255,255,.13)}
+  .past li a::after,.arch-yr a::after{content:"";flex:none;width:9px;height:9px;margin-right:6px;border-top:2px solid rgba(255,255,255,.45);border-right:2px solid rgba(255,255,255,.45);transform:rotate(45deg)}
+  .past li a:hover .past-t,.arch-yr a:hover .past-t{color:#E3BD6A}
   .past-txt{flex:1;min-width:0}
   .past-d{display:block;font-size:14px;color:rgba(255,255,255,.7)}
   .past-t{display:block;font-size:17px;line-height:1.3;color:#fff}
+  .past-all{margin-top:18px}
+  .past ul[hidden]+.past-all{margin-top:0}
+  /* Archive (?view=all): every week under year headings, same rows as Past weeks. The crumb at the top links
+     between the archive and a week's page. The filter only shows for a long list (renderArchive). */
+  .crumb{display:inline-flex;align-items:center;gap:9px;min-height:44px;margin-top:12px;padding:4px 2px;font-size:16px;color:#E3BD6A}
+  .crumb::before{content:"";flex:none;width:8px;height:8px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg)}
+  .crumb:not([hidden])+.eyebrow{margin-top:6px}
+  .sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .arch-find{margin-top:22px}
+  .arch-find input{display:block;width:100%;min-height:52px;margin:0;font:inherit;font-size:17px;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:12px;padding:12px 14px 12px 46px;-webkit-appearance:none;appearance:none;
+    background:rgba(255,255,255,.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-opacity='.65' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.6-3.6'/%3E%3C/svg%3E") no-repeat 15px 50%/20px 20px}
+  .arch-find input::placeholder{color:rgba(255,255,255,.62)}
+  .arch-find input:focus{outline:3px solid #E3BD6A;outline-offset:2px}
+  .arch-find input::-webkit-search-cancel-button{filter:invert(1);cursor:pointer}
+  .arch-count{font-size:15px;color:rgba(255,255,255,.78);margin:10px 0 0}
+  .arch-count:empty{display:none}
+  .arch-clear{margin-top:14px}
+  .arch-yr{margin-top:24px}
+  /* the year stays pinned while its weeks scroll past, so a long list never loses its place */
+  .arch-yr h2{position:sticky;top:0;z-index:1;margin:0;padding:10px 4px 8px;background:#14282e;font-size:22px;line-height:1.3;font-weight:400;color:#E3BD6A;border-bottom:1px solid rgba(227,189,106,.4)}
+  .tag{display:inline-block;margin-left:8px;padding:1px 7px;border-radius:6px;background:#E3BD6A;color:#14282e;font-size:11.5px;line-height:1.5;font-weight:700;letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
   /* Loading: a few placeholder bars so the page never sits blank on slow cell data */
   .loading{margin-top:10px}
   .loading p{font-size:16px;color:rgba(255,255,255,.7);margin:0}
@@ -97,7 +118,7 @@
   .foot a{display:inline-block;color:#E3BD6A;padding:8px 6px}
   .foot p{font-size:13px;color:rgba(255,255,255,.55);margin:4px 0 0}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-  @media (prefers-contrast:more){.meta,.past-d,.niv,.foot p,.loading p,.fail p{color:#fff}}
+  @media (prefers-contrast:more){.meta,.past-d,.niv,.foot p,.loading p,.fail p,.arch-count{color:#fff}}
 </style>
 </head>
 <body>
@@ -109,6 +130,9 @@
   </a>
 
   <div class="banner" id="banner" role="status" hidden></div>
+
+  <!-- archive -> "This week's notes"; a ?week= page -> "All sermon notes" (set up at the bottom of the script) -->
+  <a class="crumb" id="crumb" href="./" hidden></a>
 
   <p class="eyebrow">Sermon notes</p>
 
@@ -172,9 +196,22 @@
     <button type="button" class="btn btn-ghost" id="retry" hidden>Try again</button>
   </section>
 
+  <section class="arch" id="archive" aria-labelledby="arch-h" hidden>
+    <h1 class="serif" id="arch-h">All sermon notes</h1>
+    <p class="meta" id="arch-meta"></p>
+    <div class="arch-find" id="arch-find" hidden>
+      <label class="sr" for="arch-q">Search sermon notes by title</label>
+      <input type="search" id="arch-q" placeholder="Search by title" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    </div>
+    <p class="arch-count" id="arch-count" role="status" aria-live="polite"></p>
+    <button type="button" class="btn btn-ghost arch-clear" id="arch-clear" hidden>Clear search</button>
+    <div id="arch-list"></div>
+  </section>
+
   <nav class="past" id="past" aria-labelledby="past-h" hidden>
     <h2 id="past-h">Past weeks</h2>
     <ul id="past-list"></ul>
+    <a class="btn btn-ghost past-all" id="past-all" href="?view=all" data-evt="notes-all">See all sermon notes</a>
   </nav>
 
   <p class="niv" id="niv">Scripture quotations taken from The Holy Bible, New International Version&reg; NIV&reg;. Copyright &copy; 1973, 1978, 1984, 2011 by Biblica, Inc.&trade; Used by permission. All rights reserved worldwide.</p>
@@ -193,12 +230,16 @@
   // data/sermon-notes/index.json lists the weeks newest first; data/sermon-notes/<service>.json holds one week's
   // title, speaker, release_at, takeaway and outline blocks. The PUBLIC arroyo-church repo serves both through
   // GitHub Pages (Access-Control-Allow-Origin: *). A week shows once its release_at (Sunday 6:45am PT) has passed.
+  // The archive (?view=all) lists every week in index.json straight from the index (no week files), so it is
+  // exactly as long as the publisher keeps the index, and stays one request however many weeks that is.
   var DATA="https://dakota-ai-os.github.io/arroyo-church/data/";
   var NOTES=DATA+"sermon-notes/", SERMONS=DATA+"sermons.json";
   var YT="https://www.youtube.com/@arroyochurch", LIVE=YT+"/live", TZ="America/Los_Angeles";
   var q=new URLSearchParams(location.search);
   var preview=q.get("preview")==="1";                                   // ?preview=1 also shows a week before it goes public
   var want=/^\d{4}-\d{2}-\d{2}$/.test(q.get("week")||"")?q.get("week"):""; // ?week=YYYY-MM-DD
+  var archive=q.get("view")==="all";                                    // ?view=all = every week (wins over ?week=)
+  if(archive) want="";
   var SAFE_FILE=/^[A-Za-z0-9][\w.-]*\.json$/;                           // a week's "file" is a bare filename, never a path
 
   // Local testing only (never on links.arroyochurch.com): ?src=<relative folder> loads index/week/sermons JSON from
@@ -279,10 +320,11 @@
       .then(function(d){ clearTimeout(timer); return d; },function(e){ clearTimeout(timer); throw e; });
   }
 
-  // Keeps the local-testing params on in-page links; production links carry only ?week=
-  function link(week){
+  // Keeps the local-testing params on in-page links; production links carry only ?week= or ?view=all (all=true)
+  function link(week,all){
     var p=new URLSearchParams();
-    if(week) p.set("week",week);
+    if(all) p.set("view","all");
+    else if(week) p.set("week",week);
     if(preview) p.set("preview","1");
     if(src) p.set("src",src);
     if(skew) p.set("now",q.get("now"));
@@ -291,6 +333,7 @@
   function pageUrl(svc){ return location.origin+location.pathname+"?week="+svc; }
 
   var weeks=[], shown=null, text="", textHtml="", noteText="", noteHtml="", videoUrl="", videos=null, seq=0, shownKey="";
+  var ARCH_TITLE="All sermon notes · Arroyo Church";
 
   function banner(msgs){
     var b=$("banner"); b.textContent="";
@@ -298,10 +341,10 @@
     b.hidden=!msgs.length;
   }
   function fail(title,msg,retry){
-    $("loading").hidden=true; $("sheet").hidden=true;
+    $("loading").hidden=true; $("sheet").hidden=true; $("archive").hidden=true;
     $("fail-title").textContent=title; $("fail-msg").textContent=msg;
     $("retry").hidden=!retry; $("fail").hidden=false;
-    shown=null; document.title="Sermon notes · Arroyo Church";
+    shown=null; document.title=archive?ARCH_TITLE:"Sermon notes · Arroyo Church";
   }
   function netFail(){ track("notes-load-failed"); fail("We couldn’t load the notes right now","Check your connection and try again, or watch the message on YouTube.",true); }
   function noNotes(soon){
@@ -346,7 +389,9 @@
   function planKey(p){ return (p.pick?p.pick.service:"")+"|"+p.msgs.map(function(m){ return m.text; }).join("|"); }
 
   // Apply plan(): set the banners and the past-weeks list, then fetch the chosen week's file.
+  // The archive has no week to pick: it is drawn from the index alone.
   function route(){
+    if(archive) return renderArchive();
     var token=++seq, p=plan(), pick=p.pick;
     shownKey=planKey(p);
     banner(p.msgs);
@@ -495,8 +540,76 @@
       a.appendChild(txt);
       var li=el("li"); li.appendChild(a); ul.appendChild(li);
     });
-    $("past").hidden=!list.length;
+    // "See all sermon notes" shows whenever anything is released, even when the only week is the one on screen
+    $("past-h").hidden=ul.hidden=!list.length;
+    $("past").hidden=!live.length;
   }
+
+  // ---- Archive (?view=all): every released week, newest first, under year headings ----
+  // Rebuilt only when the list itself changes (archiveKey: a week released, or a new index), then the filter is
+  // re-applied, so tick() never makes it flicker and a search in progress survives a refresh. ?preview=1 also lists
+  // weeks that aren't public yet, tagged "Preview".
+  var LEAD=/^(pastor\s+)?josh(ua)?(\s+smith)?$/i;                       // the usual preacher isn't repeated on every row
+  var FILTER_MIN=9;                                                     // the search box shows from this many weeks up
+  var dayFmt=new Intl.DateTimeFormat("en-US",{timeZone:"UTC",weekday:"long",month:"long",day:"numeric"});
+  function dayDate(ymd){ var t=ymdUTC(ymd,12); return isNaN(t)?"":dayFmt.format(new Date(t)); }   // "Sunday, October 18"
+  function archiveRows(){ return weeks.filter(function(w){ return preview||released(w); }); }
+  function archiveKey(){ return "all|"+archiveRows().map(function(w){ return w.service+(released(w)?"":"*"); }).join(","); }
+  // Search text, folded the same way for titles and for what's typed: lowercase, accents dropped, apostrophes and
+  // verse colons removed, other punctuation turned into spaces. "gods love" finds "God’s Love", "jesus" finds
+  // "Jesús", "john 316" finds "John 3:16". \p{L} needs the u flag; an engine without it keeps a-z/0-9 only.
+  var PUNCT; try{ PUNCT=new RegExp("[^\\p{L}\\p{N}\\s]+","gu"); }catch(e){ PUNCT=/[^a-z0-9\s]+/g; }
+  function fold(s){
+    s=String(s).toLowerCase();
+    if(s.normalize) s=s.normalize("NFD").replace(/[̀-ͯ]/g,"");
+    return s.replace(/['‘’`]/g,"").replace(/(\d)[:.](?=\d)/g,"$1").replace(PUNCT," ");
+  }
+  var archItems=[], filtered=false, back=null;                          // [{li, hay}] for filter(); back = saved place
+  function renderArchive(){
+    var rows=archiveRows(), frag=document.createDocumentFragment(), yr="", ul=null;
+    shownKey=archiveKey(); archItems=[];
+    var pend=rows.filter(function(w){ return !released(w); }).length;
+    banner(pend?[{cls:"preview",text:"Preview — includes notes that aren’t public yet",small:"Weeks tagged Preview join this list for everyone when they go public."}]:[]);
+    if(!rows.length){ noNotes(weeks.length>0); return; }               // nothing yet, or only weeks still waiting
+
+    rows.forEach(function(w){
+      var y=w.service.slice(0,4);
+      if(y!==yr){ yr=y; var sec=el("section","arch-yr"); sec.appendChild(el("h2","serif",y)); ul=el("ul"); sec.appendChild(ul); frag.appendChild(sec); }
+      var title=str(w.title)||"Sermon notes", sp=str(w.speaker), a=el("a"), txt=el("span","past-txt"), d=el("span","past-d",dayDate(w.service));
+      if(LEAD.test(sp)) sp="";                                          // only a guest speaker is worth a mention
+      if(sp) d.appendChild(document.createTextNode(" · "+sp));
+      if(!released(w)) d.appendChild(el("span","tag","Preview"));
+      a.href=link(w.service); a.setAttribute("data-evt","notes-archive-week");
+      txt.appendChild(d); txt.appendChild(el("span","past-t",title)); a.appendChild(txt);
+      var li=el("li"); li.appendChild(a); ul.appendChild(li);
+      archItems.push({li:li,hay:fold(title+" "+sp)});
+    });
+    var box=$("arch-list"); box.textContent=""; box.appendChild(frag);   // one swap, no blank frame in between
+    $("arch-meta").textContent=rows.length===1?"1 week so far":rows.length+" weeks, newest first";
+    $("arch-find").hidden=rows.length<FILTER_MIN;
+    $("fail").hidden=true; $("loading").hidden=true; $("archive").hidden=false;
+    document.title=ARCH_TITLE;
+    if(back){ var i=$("arch-q"); if(back.q&&!i.value) i.value=back.q; }  // the search that was on screen
+    filter();
+    if(back){ window.scrollTo(0,back.y); back=null; }                    // first draw only (see "Back to the archive")
+  }
+  // Every word typed must appear in the title (or a guest speaker's name), in any order. Years with no match fold away.
+  function filter(){
+    var raw=$("arch-find").hidden?"":$("arch-q").value.trim(), words=fold(raw).split(/\s+/).filter(Boolean), hits=0;
+    archItems.forEach(function(it){
+      var ok=words.every(function(w){ return it.hay.indexOf(w)>=0; });
+      it.li.hidden=!ok; if(ok) hits++;
+    });
+    [].forEach.call($("arch-list").children,function(sec){ sec.hidden=!sec.querySelector("li:not([hidden])"); });
+    $("arch-count").textContent=!words.length?"":hits?(hits===1?"1 match":hits+" matches"):"No titles match “"+raw+"”.";
+    $("arch-clear").hidden=!words.length||hits>0;
+  }
+  $("arch-q").addEventListener("input",function(){
+    filter();
+    if(!filtered){ filtered=true; track("notes-archive-filter"); }      // once per visit: does anyone use the search?
+  });
+  $("arch-q").addEventListener("keydown",function(e){ if(e.key==="Enter") this.blur(); });   // "Search" key hides the keyboard
+  $("arch-clear").addEventListener("click",function(){ var i=$("arch-q"); i.value=""; filter(); i.focus(); });
 
   // ---- Copy + Share ----
   // The message shows under whichever button row was used (top or bottom), so it's on screen either way.
@@ -587,8 +700,9 @@
       var list=(d&&Array.isArray(d.weeks)?d.weeks:[]).filter(function(w){
         return w&&/^\d{4}-\d{2}-\d{2}$/.test(w.service||"")&&SAFE_FILE.test(w.file||"");
       }).sort(function(a,b){ return a.service<b.service?1:a.service>b.service?-1:0; });
-      var sig=JSON.stringify(list.map(function(w){ return [w.service,w.file,w.release_at]; }));
-      if(!first&&ready&&sig===indexSig&&shown) return;                 // nothing new (a failed week file retries)
+      // title + speaker too: the archive draws its rows from the index, so a corrected title should show
+      var sig=JSON.stringify(list.map(function(w){ return [w.service,w.file,w.release_at,w.title,w.speaker]; }));
+      if(!first&&ready&&sig===indexSig&&(shown||archive)) return;      // nothing new (a failed week file retries)
       weeks=list; indexSig=sig; ready=true; route();
     }).catch(function(e){
       indexBusy=false;
@@ -600,14 +714,50 @@
   // Keep an open page honest: flip the live button, reveal a week the moment its release time passes, update the
   // banner as the day moves on, and re-check index.json (at most once per 5-minute bucket, only while visible)
   // while this Sunday's notes are missing, so a page opened before a late Sunday publish, or a tab left open all
-  // week, catches up on its own.
+  // week, catches up on its own. The archive does the same, keyed on its list and its newest released week.
+  function viewKey(){ return archive?archiveKey():planKey(plan()); }
+  function newest(){
+    if(!archive) return shown&&shown.service;
+    for(var i=0;i<weeks.length;i++) if(released(weeks[i])) return weeks[i].service;
+    return "";
+  }
   function tick(){
     updateWatch();
-    if(ready&&planKey(plan())!==shownKey) route();
-    else if(!document.hidden&&!want&&!indexBusy&&bucket()>indexBucket&&behind(shown&&shown.service)) loadIndex(false);
+    if(ready&&viewKey()!==shownKey) route();
+    else if(!document.hidden&&!want&&!indexBusy&&bucket()>indexBucket&&behind(newest())) loadIndex(false);
   }
   setInterval(tick,30000);
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) tick(); });
+
+  // Links between the views (plain links, so Back and shared URLs just work): the crumb at the top goes from the
+  // archive to this week's notes, or from a ?week= page to the archive; "See all" sits under Past weeks.
+  $("past-all").href=link("",true);
+  if(archive||want){
+    var cr=$("crumb");
+    cr.textContent=archive?"This week’s notes":"All sermon notes";
+    cr.href=archive?link(""):link("",true);
+    cr.setAttribute("data-evt",archive?"notes-archive-back":"notes-all-top");
+    cr.hidden=false;
+  }
+  if(archive){
+    $("loading").firstElementChild.textContent="Loading sermon notes…";
+    $("niv").hidden=true;                                               // titles only here, no Scripture quoted
+    // Back to the archive: the list draws after an async fetch, so when the browser reloads the page on Back (no
+    // back-forward cache) its own scroll restore runs while the page is still short and lands at the top. So the
+    // archive keeps its place itself: scroll + search text go into its history entry (a moment after each scroll or
+    // keystroke, so a reload finds it current too -- Chrome drops a replaceState made while reloading) and come back
+    // on the first draw. A page the back-forward cache restores keeps its place without any of this.
+    try{
+      history.scrollRestoration="manual";
+      var st=history.state; if(st&&typeof st.y==="number") back={y:st.y,q:typeof st.q==="string"?st.q:""};
+    }catch(e){}
+    var keepT=0, keep=function(){ clearTimeout(keepT); try{ history.replaceState({y:window.pageYOffset||0,q:$("arch-q").value},""); }catch(e){} };
+    var soon=function(){ clearTimeout(keepT); keepT=setTimeout(keep,250); };   // debounced: Safari caps replaceState calls
+    window.addEventListener("scroll",soon,{passive:true});
+    $("arch-q").addEventListener("input",soon);
+    window.addEventListener("pagehide",keep);                           // a tap that leaves inside that moment
+    $("arch-list").addEventListener("click",function(e){ if(e.target.closest&&e.target.closest("a")) keep(); });
+  }
 
   loadIndex(true);
 })();
