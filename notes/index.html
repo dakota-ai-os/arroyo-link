@@ -141,7 +141,7 @@
       </button>
       <button type="button" class="btn btn-ghost btn-copy" data-evt="notes-copy-top">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy notes
+        Copy text
       </button>
     </div>
     <p class="status" id="act-status-top" role="status" aria-live="polite"></p>
@@ -159,7 +159,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
         Save to my notes
       </button>
-      <button type="button" class="btn btn-ghost btn-copy" id="copy" data-evt="notes-copy">Copy notes</button>
+      <button type="button" class="btn btn-ghost btn-copy" id="copy" data-evt="notes-copy">Copy text</button>
       <button type="button" class="btn btn-ghost" id="share" data-evt="notes-share">Share link</button>
     </div>
     <p class="status" id="act-status" role="status" aria-live="polite"></p>
@@ -393,7 +393,7 @@
 
   // Build the outline DOM and its copies in one pass, so what's copied or saved matches what's on screen.
   // Two copies, each as plain text + clean HTML (no page colors, so a dark-theme paste can't carry over):
-  //   text/textHtml  -> Copy notes: the outline as shown.
+  //   text/textHtml  -> Copy text: the outline as shown.
   //   noteText/noteHtml -> Save to my notes: the same, plus a "My notes:" space after each main point, like the
   //                       shared Apple Note's "Write some notes here", since people save it to write in.
   function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
@@ -536,13 +536,13 @@
   [].slice.call(document.querySelectorAll(".btn-copy")).forEach(function(b){ b.addEventListener("click",function(){
     if(!text) return;
     from(b);
-    copyRich(text,textHtml).then(function(){ say("Notes copied. Paste them into your notes app or anywhere."); },
+    copyRich(text,textHtml).then(function(){ say("Copied. Paste it into your notes app or anywhere."); },
                     function(){ say("Couldn’t copy on this device. Press and hold the notes to select them."); });
   }); });
   // Save to my notes: there's no web API that writes into Apple Notes or Keep directly, but the share sheet does it.
   // Sharing TEXT (not a link) puts "Notes" on an iPhone's sheet (a new note, titled by the first line) and Keep,
   // Samsung Notes, OneNote... on Android. Only `text` is passed: a separate title/url makes some apps add a link
-  // card or repeat the title. Shown only where the share sheet exists; elsewhere Copy notes does the job.
+  // card or repeat the title. Shown only where the share sheet exists; elsewhere Copy text does the job.
   var saveBtns=[].slice.call(document.querySelectorAll(".btn-save"));
   // iPhone / iPad / Mac: "Open in Notes" opens the church's SHARED Apple Note (rewritten every Saturday night by
   // sermon_notes_sync.py) in one tap -- what the congregation already knows: open it, then copy it into their own
