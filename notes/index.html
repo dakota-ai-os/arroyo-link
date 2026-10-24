@@ -302,8 +302,10 @@
     return {wd:d.toLocaleDateString("en-US",{timeZone:TZ,weekday:"long"}),
             t:d.toLocaleTimeString("en-US",{timeZone:TZ,hour:"numeric",minute:"2-digit"}).replace(/\s*([AP])M$/i,function(_,a){ return a.toLowerCase()+"m"; })};
   }
-  // Sunday 9:15-11:45am PT: the primary button becomes "Watch live"
-  function liveWindow(){ var t=la(now()), mins=t.h*60+t.m; return t.wd==="Sun"&&mins>=555&&mins<=705; }
+  // Sunday 9:55-11:45am PT: the primary button becomes "Watch live" (youtube.com/@arroyochurch/live plays whatever is
+  // live). It starts just before the 10am stream, not earlier: before that /live has nothing to show (2026-10-24).
+  // Outside the window it is "Watch on YouTube": this week's video once the sync has it, else the channel.
+  function liveWindow(){ var t=la(now()), mins=t.h*60+t.m; return t.wd==="Sun"&&mins>=595&&mins<=705; }
   // The Sunday whose notes are current: today if it's Sunday in LA, else the Sunday just gone ("2026-10-25")
   var WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   function thisSunday(){ var t=la(now()); return new Date(ymdUTC(t.ymd)-Math.max(0,WD.indexOf(t.wd))*864e5).toISOString().slice(0,10); }
@@ -492,6 +494,7 @@
     noteHtml=hl.map(function(x){ return x===MINE?"<p><i>My notes:</i></p><p><br></p><p><br></p>":x; }).join("");
 
     shown=entry; videoUrl="";
+    if(typeof noteButtons==="function") noteButtons();
     document.title=title+" · Sermon notes · Arroyo Church";
     $("fail").hidden=true; $("loading").hidden=true; $("sheet").hidden=false;
     updateWatch(); loadVideo();
@@ -664,10 +667,17 @@
   // The link is the note's stable share token; its "#Title" hash changes weekly, so it is left off on purpose.
   var APPLE_NOTE="https://www.icloud.com/notes/06e8UJJw81I31qrwqcGLqTXyA";
   var isApple=/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);   // iPadOS reports "Macintosh"
-  if(isApple){
-    [].slice.call(document.querySelectorAll(".btn-apple")).forEach(function(a){ a.href=APPLE_NOTE; a.hidden=false; });
-    $("top-actions").classList.remove("one");
-  }else if(navigator.share){ saveBtns.forEach(function(b){ b.hidden=false; }); $("top-actions").classList.remove("one"); }
+  // The shared note only ever holds the NEWEST outline the job published (weeks[0], released or not), so "Open in
+  // Notes" shows only on that week. On an older week -- or Saturday night before 6:45am Sunday, when the note already
+  // has the new week but the page still shows last week -- Apple devices get Save (share sheet) like everyone else,
+  // so the button never opens a different sermon than the one on screen (Dakota, 2026-10-24). Re-run on every render.
+  function noteButtons(){
+    var apple=isApple&&!!shown&&weeks.length>0&&shown.service===weeks[0].service, save=!apple&&!!navigator.share;
+    [].slice.call(document.querySelectorAll(".btn-apple")).forEach(function(a){ a.href=APPLE_NOTE; a.hidden=!apple; });
+    saveBtns.forEach(function(b){ b.hidden=!save; });
+    $("top-actions").classList.toggle("one",!(apple||save));
+  }
+  noteButtons();
   saveBtns.forEach(function(b){ b.addEventListener("click",function(){
     if(!noteText) return;
     from(b);
