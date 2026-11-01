@@ -425,15 +425,19 @@
   }
 
   // Consecutive "sub" blocks fold into one list and consecutive "quote" blocks into one Scripture block.
+  // A verse between sub points doesn't end their list: the next point keeps counting (11/1: the
+  // third truth read "1." after a verse). Only a main point, subhead or body line starts a new count.
   function groups(blocks){
-    var out=[];
+    var out=[], subN=0;
     (Array.isArray(blocks)?blocks:[]).forEach(function(b){
       var t=b&&str(b.text); if(!t) return;
       var k=b.kind;
       if(k!=="main"&&k!=="subhead"&&k!=="sub"&&k!=="quote") k=/^["“]/.test(t)?"quote":"para";
+      if(k==="main"||k==="subhead"||k==="para") subN=0;
       var last=out[out.length-1];
       if((k==="sub"||k==="quote")&&last&&last.kind===k) last.items.push(t);
-      else out.push({kind:k,items:[t]});
+      else out.push(k==="sub"?{kind:k,items:[t],start:subN+1}:{kind:k,items:[t]});
+      if(k==="sub") subN++;
     });
     return out;
   }
@@ -466,14 +470,15 @@
       }else if(g.kind==="subhead"){
         box.appendChild(el("h3","",t)); lines.push(t); hl.push("<h3>"+esc(t)+"</h3>");
       }else if(g.kind==="sub"){
-        var ol=el("ol"), oh="";
+        var ol=el("ol"), oh="", n0=g.start||1;
+        if(n0>1) ol.start=n0;
         g.items.forEach(function(it,j){
           var li=el("li"), lab=labelSplit(it);
           if(lab){ li.appendChild(el("b","",lab[0])); li.appendChild(document.createTextNode(lab[1])); oh+="<li><b>"+esc(lab[0])+"</b>"+esc(lab[1])+"</li>"; }
           else{ li.textContent=it; oh+="<li>"+esc(it)+"</li>"; }
-          ol.appendChild(li); lines.push("   "+(j+1)+". "+it);
+          ol.appendChild(li); lines.push("   "+(n0+j)+". "+it);
         });
-        box.appendChild(ol); hl.push("<ol>"+oh+"</ol>");
+        box.appendChild(ol); hl.push((n0>1?'<ol start="'+n0+'">':"<ol>")+oh+"</ol>");
       }else if(g.kind==="quote"){
         var bq=el("blockquote"), qh="";
         g.items.forEach(function(it){ bq.appendChild(quoteP(it)); lines.push(it); qh+="<p><i>"+esc(it)+"</i></p>"; });
